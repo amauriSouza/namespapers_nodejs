@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+        crossorigin="anonymous">
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN"
+        crossorigin="anonymous">
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <title>Namespapers</title>
+</head>
+
+<body>
+    <div class="container">
+        <h1 style="font-size: 26px; text-align: center;">Registration the names</h1>
+        <div class="d-flex justify-content-center">
+            <form>
+                <div class="form-group">
+                    <div class="d-flex justify-content-center">
+                        <label for="exampleFormControlInput1">Name</label>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <input type="text" id="texto" class="form-control" id="exampleFormControlInput1">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center">
+                    <button type="button" id="botao" class="btn btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+
+        <hr>
+
+        <h1 class="d-flex justify-content-center" style="font-size: 18px;">List the names</h1>
+        <div class="d-flex justify-content-center">
+            <ul class="list-group" style="width: 50%;" id="lista">
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        window.onload = () => {
+            const lista = document.querySelector('#lista');
+            const texto = document.querySelector('#texto');
+            const botao = document.querySelector('#botao');
+
+            botao.addEventListener('click', create);
+            lista.addEventListener('click', del);
+            lista.addEventListener('click', edit);
+            read();
+        };
+
+        // carrega o li da page
+        function templateLi(id, nome, element = true) {
+            return `
+                    ${element ? `<li class="list-group-item d-flex justify-content-between">` : ''}
+                        ${nome}
+                        <div>
+                            <i class="fa fa-pencil text-info update" style="cursor: pointer;" data-id="${id}"></i> 
+                            <i class="fa fa-trash text-danger delete" style="cursor: pointer;" data-id="${id}"></i> 
+                        </div>
+                    ${element ? `</li> ` : ''}    
+                    `;
+        }
+
+        //chamada ajax para nosso read e preenche novo elemento li
+        function read() {
+            lista.innerHTML = '';
+            axios.get('/read')
+                .then((response) => {
+                    response.data.forEach(element => {
+                        lista.innerHTML += templateLi(element.id, element.name);
+                    });
+
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        }
+
+        // chamada ajax do tipo post que envia o nome
+        function create() {
+            const name = texto.value;
+            axios.post('/create', { name })
+                .then((response) => {
+                    console.log(response);
+                    lista.innerHTML += templateLi(response.data[0], name);
+                    texto.value = '';
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        }
+
+        // manipula o dom para criar um novo campo e aciona a funcoa update
+        function edit(edicao) {
+            if (edicao.target.classList.contains('update')) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control';
+                input.setAttribute('value', '');
+                const pai = edicao.path[2];
+                const id = edicao.target.dataset.id;
+                pai.innerHTML = '';
+                pai.appendChild(input);
+                input.addEventListener('keydown', update.bind(pai, id, input));
+                input.focus();
+
+            }
+        }
+
+        // verifica se a tecla foi enter e realiza o update
+        function update(id, input) {
+            const x = event.key;
+            if (x == null || x != 'Enter') return;
+            axios.put(`/update/${id}`, { name: input.value })
+                .then((response) => {
+                    if (response.status = 200) {
+                        this.innerHTML = templateLi(id, input.value, false);
+                    }
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        }
+
+        // deleta o elemento do dom e bd
+        function del(exclusao) {
+            if (exclusao.target.classList.contains('delete')) {
+                const id = exclusao.target.dataset.id;
+                axios.delete(`/delete/${id}`)
+                    .then((response) => {
+                        if (response.status = 200) {
+                            lista.removeChild(exclusao.path[2]);
+                        }
+                    })
+
+                    .catch((error) => {
+                        console.log(error);
+                    });
+            }
+        }
+
+    </script>
+</body>
+
+</html>
